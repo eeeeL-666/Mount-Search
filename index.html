@@ -66,10 +66,17 @@
             <div class="search-container">
                 <input
                     type="text"
+                    id="searchInput"
                     placeholder="Temukan gunung tujuanmu di sini..."
+                    autocomplete="off"
                 >
 
-                <button type="button">
+                <!-- Tombol hapus pencarian (muncul saat ada input) -->
+                <button type="button" id="clearSearch" class="clear-search" aria-label="Hapus pencarian">
+                    &times;
+                </button>
+
+                <button type="button" id="searchButton">
                     Cari Gunung
                 </button>
             </div>
@@ -84,8 +91,9 @@
         <div class="section-header">
 
             <div>
-                <p class="section-subtitle">DESTINASI PILIHAN</p>
-                <h2>Gunung Populer</h2>
+                <p class="section-subtitle" id="sectionSubtitle">DESTINASI PILIHAN</p>
+                <h2 id="sectionTitle">Gunung Populer</h2>
+                <p class="results-count" id="resultsCount"></p>
             </div>
 
             <a href="#" class="see-all">
@@ -94,39 +102,8 @@
 
         </div>
 
-        <div class="mountain-container">
-
-            <div class="mountain-card">
-                <div class="mountain-image mountain-1"></div>
-
-                <div class="mountain-info">
-                    <span class="location">Jawa Timur</span>
-                    <h3>Gunung Bromo</h3>
-                    <p>Gunung dengan panorama matahari terbit yang memukau.</p>
-                </div>
-            </div>
-
-            <div class="mountain-card">
-                <div class="mountain-image mountain-2"></div>
-
-                <div class="mountain-info">
-                    <span class="location">Jawa Timur</span>
-                    <h3>Gunung Semeru</h3>
-                    <p>Keindahan alam dan lanskap pegunungan yang menakjubkan.</p>
-                </div>
-            </div>
-
-            <div class="mountain-card">
-                <div class="mountain-image mountain-3"></div>
-
-                <div class="mountain-info">
-                    <span class="location">Jawa Barat</span>
-                    <h3>Gunung Papandayan</h3>
-                    <p>Destinasi alam dengan padang rumput dan kawah.</p>
-                </div>
-            </div>
-
-        </div>
+        <!-- Daftar gunung dirender oleh script.js -->
+        <div class="mountain-container" id="mountainContainer"></div>
 
     </section>
 
@@ -134,6 +111,8 @@
     <footer>
         <p>© 2026 MountSearch. Jelajahi Keindahan Alam Indonesia.</p>
     </footer>
+
+    <script src="script.js"></script>
 
 </body>
 </html>

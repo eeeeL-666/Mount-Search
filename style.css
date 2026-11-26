@@ -257,6 +257,42 @@ body {
     background-color: #3e6c18;
 }
 
+/* Tombol hapus (X) di dalam search bar */
+.clear-search {
+    display: none;
+
+    width: 36px;
+    height: 36px;
+
+    flex-shrink: 0;
+
+    margin-right: 6px;
+
+    background-color: #edf5e7;
+    color: #568b25;
+
+    border: none;
+    border-radius: 50%;
+
+    font-size: 22px;
+    line-height: 1;
+
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Kelas yang dipakai JavaScript untuk menampilkan tombol hapus */
+.clear-search.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clear-search:hover {
+    background-color: #568b25;
+    color: white;
+}
+
 /* =========================
    MOUNTAIN SECTION
 ========================= */
@@ -318,34 +354,37 @@ body {
 /* CARD IMAGES */
 
 .mountain-image {
+    width: 100%;
     height: 230px;
 
-    background-size: cover;
-    background-position: center;
+    overflow: hidden;
+    background-color: #edf5e7;
 }
 
-.mountain-1 {
-    background-image: url(
-        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=85"
-    );
+/* Gambar gunung memakai elemen <img> agar mudah dikelola */
+.mountain-image img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+    object-position: center;
+
+    display: block;
+    transition: transform 0.4s ease;
 }
 
-.mountain-2 {
-    background-image: url(
-        "https://images.unsplash.com/photo-1464278533981-50106e617b1b?auto=format&fit=crop&w=900&q=85"
-    );
-}
-
-.mountain-3 {
-    background-image: url(
-        "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=900&q=85"
-    );
+/* Efek zoom halus saat card di-hover */
+.mountain-card:hover .mountain-image img {
+    transform: scale(1.08);
 }
 
 /* CARD CONTENT */
 
 .mountain-info {
     padding: 22px;
+
+    display: flex;
+    flex-direction: column;
 }
 
 .location {
@@ -360,16 +399,92 @@ body {
     border-radius: 20px;
 
     margin-bottom: 12px;
+    align-self: flex-start;
 }
 
 .mountain-info h3 {
     font-size: 21px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+}
+
+/* Tinggi gunung (mdpl) */
+.mountain-height {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    font-size: 13px;
+    font-weight: bold;
+    color: #568b25;
+
+    margin-bottom: 12px;
 }
 
 .mountain-info p {
     font-size: 14px;
     line-height: 1.7;
+    color: #777;
+
+    margin-bottom: 18px;
+}
+
+/* Tombol Lihat Detail */
+.detail-button {
+    align-self: flex-start;
+
+    margin-top: auto;
+
+    padding: 10px 20px;
+
+    background-color: #568b25;
+    color: white;
+
+    border: none;
+    border-radius: 8px;
+
+    font-size: 14px;
+    font-weight: bold;
+
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.detail-button:hover {
+    background-color: #3e6c18;
+}
+
+/* =========================
+   HASIL PENCARIAN / KOSONG
+   ========================= */
+
+.results-count {
+    font-size: 14px;
+    color: #777;
+    margin-top: 8px;
+}
+
+/* Pesan saat gunung tidak ditemukan */
+.not-found {
+    grid-column: 1 / -1;
+
+    text-align: center;
+
+    padding: 60px 20px;
+
+    background-color: #f7f9f4;
+    border-radius: 12px;
+
+    color: #555;
+}
+
+.not-found h3 {
+    font-size: 22px;
+    color: #222;
+    margin-bottom: 10px;
+}
+
+.not-found p {
+    font-size: 15px;
     color: #777;
 }
 
@@ -473,6 +588,8 @@ footer {
         height: auto;
         flex-direction: column;
 
+        position: relative;
+
         background: transparent;
         box-shadow: none;
         gap: 10px;
@@ -482,6 +599,20 @@ footer {
         height: 55px;
         width: 100%;
         background-color: white;
+    }
+
+    /* Tombol hapus diposisikan di dalam input pada layar kecil */
+    .search-container .clear-search {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+
+        width: 36px;
+        height: 36px;
+
+        margin: 0;
+
+        background-color: #f0f0f0;
     }
 
     .search-container button {
