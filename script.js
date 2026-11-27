@@ -1,5 +1,5 @@
 /* =========================================================
-   MOUNTSEARCH - FITUR SEARCH GUNUNG (TAHAP 2)
+   MOUNTSEARCH - SEARCH GUNUNG + CAROUSEL INFINITE
    JavaScript Vanilla, tanpa library / API / database.
    ========================================================= */
 
@@ -70,23 +70,42 @@ const gunungList = [
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
 const clearButton = document.getElementById("clearSearch");
-const container = document.getElementById("mountainContainer");
+const track = document.getElementById("mountainContainer");
+const carousel = document.getElementById("carousel");
 const sectionTitle = document.getElementById("sectionTitle");
 const sectionSubtitle = document.getElementById("sectionSubtitle");
 const resultsCount = document.getElementById("resultsCount");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const dotsContainer = document.getElementById("carouselDots");
 
 /* ---------------------------------------------------------
-   3. BUAT SATU CARD GUNUNG
+   3. STATE CAROUSEL
+---------------------------------------------------------
+   currentIndex : posisi card paling kiri dalam daftar "extended"
+                  (card asli + card kloningan di ujung).
+   loopEnabled  : true jika carousel bisa digeser (infinite).
+--------------------------------------------------------- */
+let currentIndex = 0;
+let currentData = [];
+let loopEnabled = false;
+
+// Keadaan animasi wrap (cegah klik cepat yang membuat area kosong).
+const TRANSITION_MS = 500; // samakan dengan durasi transisi CSS (0.5s)
+let isAnimating = false;
+let snapTimer = null;
+let snapToken = 0; // penanda agar callback lama tidak berlaku
+
+/* ---------------------------------------------------------
+   4. BUAT SATU CARD GUNUNG
    ---------------------------------------------------------
    Mengembalikan elemen HTML card berdasarkan data gunung.
    Gambar memakai elemen <img> dengan fallback lokal.
 --------------------------------------------------------- */
 function buatCard(gunung) {
-    // Elemen utama card
     const card = document.createElement("div");
     card.className = "mountain-card";
 
-    // Wrapper gambar + elemen <img>
     const imageWrapper = document.createElement("div");
     imageWrapper.className = "mountain-image";
 
@@ -110,7 +129,6 @@ function buatCard(gunung) {
 
     imageWrapper.appendChild(img);
 
-    // Bagian informasi
     const info = document.createElement("div");
     info.className = "mountain-info";
 
@@ -133,7 +151,6 @@ function buatCard(gunung) {
     detailBtn.className = "detail-button";
     detailBtn.textContent = "Lihat Detail";
 
-    // Gabungkan informasi ke dalam card
     info.appendChild(location);
     info.appendChild(title);
     info.appendChild(height);
@@ -147,23 +164,274 @@ function buatCard(gunung) {
 }
 
 /* ---------------------------------------------------------
-   4. TAMPILKAN DAFTAR GUNUNG KE DALAM CONTAINER
-   ---------------------------------------------------------
-   Menghapus isi container lama agar card tidak menumpuk.
+   5. HELPER UKURAN & POSISI
 --------------------------------------------------------- */
-function tampilkanGunung(daftar) {
-    container.innerHTML = ""; // bersihkan card sebelumnya
 
-    daftar.forEach(function (gunung) {
-        container.appendChild(buatCard(gunung));
-    });
+// Jumlah card yang terlihat sesuai breakpoint CSS.
+function getVisibleCount() {
+    if (window.innerWidth <= 700) return 1;
+    if (window.innerWidth <= 1000) return 2;
+    return 3;
+}
+
+// Posisi awal (real) terjauh untuk mode non-loop.
+function getMaxIndex() {
+    return Math.max(0, currentData.length - getVisibleCount());
+}
+
+// Jarak geser satu card = lebar card + gap.
+function getStep() {
+    const firstCard = track.querySelector(".mountain-card");
+    if (!firstCard) return 0;
+    const cardWidth = firstCard.getBoundingClientRect().width;
+    const gap = parseFloat(getComputedStyle(track).gap) || 0;
+    return cardWidth + gap;
 }
 
 /* ---------------------------------------------------------
-   5. TAMPILKAN PESAN "TIDAK DITEMUKAN"
+   6. INTI RENDER CAROUSEL
+   ---------------------------------------------------------
+   Membangun track. Jika data lebih banyak dari yang terlihat,
+   card di ujung dikloning agar loop terlihat mulus (infinite).
+--------------------------------------------------------- */
+function tampilkanDaftar(daftar) {
+    clearSnap(); // batalkan proses wrap yang mungkin sedang berjalan
+    currentData = daftar;
+
+    const n = daftar.length;
+    const v = getVisibleCount();
+    loopEnabled = n > v;
+
+    // Posisi awal: card asli pertama (setelah kloningan awal).
+    currentIndex = loopEnabled ? v : 0;
+
+    track.innerHTML = "";
+    track.style.transition = "none";
+    track.style.transform = "translateX(0px)";
+
+    if (!loopEnabled) {
+        // Semua card muat -> tampilkan apa adanya.
+        daftar.forEach(function (gunung) {
+            track.appendChild(buatCard(gunung));
+        });
+    } else {
+        // 1) Kloningan card terakhir (v card) di paling depan.
+        for (let i = n - v; i < n; i++) {
+            track.appendChild(buatCard(daftar[i]));
+        }
+        // 2) Card asli.
+        daftar.forEach(function (gunung) {
+            track.appendChild(buatCard(gunung));
+        });
+        // 3) Kloningan card pertama (v card) di paling belakang.
+        for (let i = 0; i < v; i++) {
+            track.appendChild(buatCard(daftar[i]));
+        }
+    }
+
+    // Paksa layout lalu aktifkan kembali transisi.
+    track.offsetHeight;
+    track.style.transition = "";
+
+    buildDots();
+    updateCarousel(false); // pasang posisi awal tanpa animasi
+}
+
+/* ---------------------------------------------------------
+   7. BANGUN INDIKATOR TITIK
+--------------------------------------------------------- */
+function buildDots() {
+    dotsContainer.innerHTML = "";
+
+    const n = currentData.length;
+    const total = loopEnabled ? n : (getMaxIndex() + 1);
+
+    for (let i = 0; i < total; i++) {
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.className = "carousel-dot";
+        dot.setAttribute("aria-label", "Ke posisi " + (i + 1));
+        dot.addEventListener("click", function () {
+            goToDot(i);
+        });
+        dotsContainer.appendChild(dot);
+    }
+}
+
+/* ---------------------------------------------------------
+   8. PERBARUI TAMPILAN (transform, titik, panah)
+   ---------------------------------------------------------
+   animate = false -> tanpa transisi (untuk lompatan diam).
+--------------------------------------------------------- */
+function updateCarousel(animate) {
+    const step = getStep();
+
+    if (animate === false) {
+        track.style.transition = "none";
+    } else {
+        track.style.transition = "";
+    }
+
+    track.style.transform = "translateX(" + (-currentIndex * step) + "px)";
+
+    // Paksa reflow agar lompatan tanpa animasi benar-benar diam.
+    if (animate === false) {
+        track.offsetHeight;
+        track.style.transition = "";
+    }
+
+    updateDotsAndArrows();
+}
+
+/* Perbarui status titik aktif & panah */
+function updateDotsAndArrows() {
+    const n = currentData.length;
+    const v = getVisibleCount();
+    const dots = dotsContainer.children;
+
+    // Tentukan titik aktif (modulo agar konsisten saat di area kloningan).
+    let active;
+    if (loopEnabled) {
+        active = (((currentIndex - v) % n) + n) % n;
+    } else {
+        active = currentIndex;
+    }
+
+    for (let i = 0; i < dots.length; i++) {
+        dots[i].classList.toggle("active", i === active);
+    }
+
+    // Panah nonaktif hanya jika memang tidak ada yang bisa digeser.
+    const canScroll = loopEnabled || getMaxIndex() > 0;
+    prevBtn.disabled = !canScroll;
+    nextBtn.disabled = !canScroll;
+    dotsContainer.style.display = canScroll ? "flex" : "none";
+}
+
+/* ---------------------------------------------------------
+   9. LOMPATAN TANPA ANIMASI (penyempurnaan loop)
+--------------------------------------------------------- */
+function jumpNoAnim(index) {
+    currentIndex = index;
+    updateCarousel(false);
+}
+
+/* Batalkan proses wrap yang sedang berjalan (jika ada). */
+function clearSnap() {
+    snapToken++; // buat callback lama menjadi tidak berlaku
+    if (snapTimer) {
+        clearTimeout(snapTimer);
+        snapTimer = null;
+    }
+    isAnimating = false;
+}
+
+/* Setelah animasi selesai, lompat diam ke posisi yang setara.
+   Dipakai saat slide melewati area kloningan ujung.
+   Menggunakan penguncian + fallback timer agar klik cepat aman. */
+function snapAfterTransition(targetIndex) {
+    isAnimating = true;
+    const myToken = snapToken;
+    let done = false;
+
+    function finish() {
+        if (done) return;
+        done = true;
+        if (myToken !== snapToken) return; // sudah dibatalkan / list berubah
+
+        track.removeEventListener("transitionend", onEnd);
+        if (snapTimer) {
+            clearTimeout(snapTimer);
+            snapTimer = null;
+        }
+        jumpNoAnim(targetIndex);
+        isAnimating = false;
+    }
+
+    function onEnd(event) {
+        // Hanya tanggapi transisi transform pada track.
+        if (event.target !== track || event.propertyName !== "transform") return;
+        finish();
+    }
+
+    track.addEventListener("transitionend", onEnd);
+
+    // Fallback bila transitionend tidak sempat muncul (mis. tab tidak aktif).
+    snapTimer = setTimeout(finish, TRANSITION_MS + 60);
+}
+
+/* ---------------------------------------------------------
+   10. PINDAH SLIDE (INFINITE)
+--------------------------------------------------------- */
+function slideNext() {
+    if (isAnimating) return; // abaikan klik saat proses wrap berlangsung
+    const n = currentData.length;
+    const v = getVisibleCount();
+
+    if (!loopEnabled) {
+        if (currentIndex < getMaxIndex()) {
+            currentIndex++;
+            updateCarousel(true);
+        }
+        return;
+    }
+
+    currentIndex++;
+    updateCarousel(true);
+
+    // Sudah masuk area kloningan ujung -> lompat diam ke card asli pertama.
+    if (currentIndex >= v + n) {
+        snapAfterTransition(currentIndex - n);
+    }
+}
+
+function slidePrev() {
+    if (isAnimating) return; // abaikan klik saat proses wrap berlangsung
+    const n = currentData.length;
+    const v = getVisibleCount();
+
+    if (!loopEnabled) {
+        if (currentIndex > 0) {
+            currentIndex--;
+            updateCarousel(true);
+        }
+        return;
+    }
+
+    currentIndex--;
+    updateCarousel(true);
+
+    // Sudah masuk area kloningan awal -> lompat diam ke card asli terakhir.
+    if (currentIndex < v) {
+        snapAfterTransition(currentIndex + n);
+    }
+}
+
+/* Klik titik indikator */
+function goToDot(i) {
+    clearSnap(); // batalkan wrap yang mungkin sedang berjalan
+    if (loopEnabled) {
+        currentIndex = getVisibleCount() + i; // card asli ke-i
+    } else {
+        currentIndex = i;
+    }
+    updateCarousel(true);
+}
+
+/* ---------------------------------------------------------
+   11. PESAN "TIDAK DITEMUKAN"
 --------------------------------------------------------- */
 function tampilkanTidakDitemukan() {
-    container.innerHTML = ""; // bersihkan card sebelumnya
+    clearSnap(); // batalkan proses wrap yang mungkin sedang berjalan
+    currentData = [];
+    loopEnabled = false;
+    currentIndex = 0;
+
+    track.innerHTML = "";
+    track.style.transition = "none";
+    track.style.transform = "translateX(0px)";
+    track.offsetHeight;
+    track.style.transition = "";
 
     const box = document.createElement("div");
     box.className = "not-found";
@@ -176,22 +444,24 @@ function tampilkanTidakDitemukan() {
 
     box.appendChild(title);
     box.appendChild(desc);
-    container.appendChild(box);
+    track.appendChild(box);
+
+    dotsContainer.innerHTML = "";
+    updateDotsAndArrows();
 }
 
 /* ---------------------------------------------------------
-   6. TAMPILKAN MODE "GUNUNG POPULER" (input kosong)
+   12. MODE "GUNUNG POPULER" (input kosong)
 --------------------------------------------------------- */
 function tampilkanPopuler() {
-    tampilkanGunung(gunungList);
-
     sectionSubtitle.textContent = "DESTINASI PILIHAN";
     sectionTitle.textContent = "Gunung Populer";
     resultsCount.textContent = "";
+    tampilkanDaftar(gunungList);
 }
 
 /* ---------------------------------------------------------
-   7. JALANKAN PENCARIAN
+   13. JALANKAN PENCARIAN
    ---------------------------------------------------------
    - Tidak sensitif huruf besar/kecil
    - Mendukung pencarian sebagian kata
@@ -200,25 +470,21 @@ function tampilkanPopuler() {
 function jalankanPencarian() {
     const kata = searchInput.value.trim().toLowerCase();
 
-    // Tampilkan / sembunyikan tombol hapus
     if (kata.length > 0) {
         clearButton.classList.add("show");
     } else {
         clearButton.classList.remove("show");
     }
 
-    // Input kosong -> tampilkan daftar populer
     if (kata === "") {
         tampilkanPopuler();
         return;
     }
 
-    // Filter data berdasarkan nama (sebagian kata, case-insensitive)
     const hasil = gunungList.filter(function (gunung) {
         return gunung.nama.toLowerCase().includes(kata);
     });
 
-    // Ubah judul section menjadi "Hasil Pencarian"
     sectionSubtitle.textContent = "HASIL PENCARIAN";
     sectionTitle.textContent = "Hasil Pencarian";
     resultsCount.textContent =
@@ -227,36 +493,74 @@ function jalankanPencarian() {
     if (hasil.length === 0) {
         tampilkanTidakDitemukan();
     } else {
-        tampilkanGunung(hasil);
+        tampilkanDaftar(hasil);
     }
 }
 
 /* ---------------------------------------------------------
-   8. EVENT LISTENER
+   14. EVENT LISTENER - PENCARIAN
 --------------------------------------------------------- */
-
-// Hasil muncul otomatis ketika pengguna mengetik
 searchInput.addEventListener("input", jalankanPencarian);
 
-// Tekan Enter untuk mencari
 searchInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
         jalankanPencarian();
     }
 });
 
-// Klik tombol "Cari Gunung"
 searchButton.addEventListener("click", jalankanPencarian);
 
-// Klik tombol hapus (X) -> kosongkan input & kembali ke populer
 clearButton.addEventListener("click", function () {
     searchInput.value = "";
     clearButton.classList.remove("show");
     tampilkanPopuler();
-    searchInput.focus(); // kembalikan fokus ke input
+    searchInput.focus();
 });
 
 /* ---------------------------------------------------------
-   9. TAMPILKAN DAFTAR AWAL SAAT HALAMAN DIMUAT
+   15. EVENT LISTENER - TOMBOL NAVIGASI
+--------------------------------------------------------- */
+prevBtn.addEventListener("click", slidePrev);
+nextBtn.addEventListener("click", slideNext);
+
+/* ---------------------------------------------------------
+   16. SWIPE PADA SMARTPHONE
+--------------------------------------------------------- */
+let touchStartX = 0;
+
+carousel.addEventListener("touchstart", function (event) {
+    touchStartX = event.changedTouches[0].clientX;
+}, { passive: true });
+
+carousel.addEventListener("touchend", function (event) {
+    const deltaX = event.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(deltaX) > 50) {
+        if (deltaX < 0) {
+            slideNext(); // geser ke kiri -> berikutnya
+        } else {
+            slidePrev(); // geser ke kanan -> sebelumnya
+        }
+    }
+}, { passive: true });
+
+/* ---------------------------------------------------------
+   17. SESUAIKAN SAAT UKURAN LAYAR BERUBAH
+   ---------------------------------------------------------
+   Membangun ulang carousel agar jumlah card & kloningan pas.
+--------------------------------------------------------- */
+let resizeTimer;
+window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+        if (currentData.length === 0) {
+            tampilkanTidakDitemukan();
+        } else {
+            tampilkanDaftar(currentData);
+        }
+    }, 150);
+});
+
+/* ---------------------------------------------------------
+   18. TAMPILKAN DAFTAR AWAL SAAT HALAMAN DIMUAT
 --------------------------------------------------------- */
 tampilkanPopuler();

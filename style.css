@@ -330,13 +330,26 @@ body {
 
 /* MOUNTAIN CARDS */
 
+/* Viewport carousel menyembunyikan card di luar layar */
+.carousel {
+    width: 100%;
+    overflow: hidden;
+}
+
 .mountain-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: 25px;
+
+    /* Transisi geser yang halus */
+    transition: transform 0.5s ease;
+    will-change: transform;
 }
 
 .mountain-card {
+    /* Default desktop: 3 card terlihat */
+    flex: 0 0 calc((100% - 50px) / 3);
+    min-width: 0;
+
     background-color: white;
 
     border-radius: 12px;
@@ -344,11 +357,12 @@ body {
 
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
 
-    transition: 0.3s;
+    transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .mountain-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
 }
 
 /* CARD IMAGES */
@@ -465,7 +479,7 @@ body {
 
 /* Pesan saat gunung tidak ditemukan */
 .not-found {
-    grid-column: 1 / -1;
+    flex: 0 0 100%;
 
     text-align: center;
 
@@ -475,6 +489,75 @@ body {
     border-radius: 12px;
 
     color: #555;
+}
+
+/* =========================
+   CAROUSEL NAVIGATION & DOTS
+   ========================= */
+
+.carousel-nav {
+    display: flex;
+    gap: 12px;
+}
+
+.carousel-btn {
+    width: 48px;
+    height: 48px;
+
+    background-color: white;
+    color: #568b25;
+
+    border: 2px solid #568b25;
+    border-radius: 50%;
+
+    font-size: 26px;
+    line-height: 1;
+
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.carousel-btn:hover {
+    background-color: #568b25;
+    color: white;
+}
+
+.carousel-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.carousel-btn:disabled:hover {
+    background-color: white;
+    color: #568b25;
+}
+
+/* Indikator titik di bawah carousel */
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+
+    margin-top: 28px;
+}
+
+.carousel-dot {
+    width: 10px;
+    height: 10px;
+
+    background-color: #d9e6cf;
+
+    border: none;
+    border-radius: 50%;
+
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.carousel-dot.active {
+    width: 26px;
+    border-radius: 6px;
+    background-color: #568b25;
 }
 
 .not-found h3 {
@@ -525,8 +608,9 @@ footer {
         font-size: 40px;
     }
 
-    .mountain-container {
-        grid-template-columns: repeat(2, 1fr);
+    .mountain-card {
+        /* Tablet: 2 card terlihat */
+        flex: 0 0 calc((100% - 25px) / 2);
     }
 
 }
@@ -628,8 +712,15 @@ footer {
         font-size: 25px;
     }
 
-    .mountain-container {
-        grid-template-columns: 1fr;
+    .mountain-card {
+        /* Mobile: 1 card terlihat */
+        flex: 0 0 100%;
+    }
+
+    .carousel-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 22px;
     }
 
 }

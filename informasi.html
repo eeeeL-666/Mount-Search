@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informasi Gunung Indonesia - MountSearch</title>
+
+    <!-- Gaya dasar bersama (navbar, topbar, footer, card gunung) -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Gaya khusus halaman Informasi -->
+    <link rel="stylesheet" href="informasi.css">
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <span>Explore Indonesia</span>
+            <span class="divider">|</span>
+            <span>Temukan Destinasi Pendakianmu</span>
+        </div>
+
+        <div class="topbar-right">
+            <a href="#">Masuk</a>
+            <span class="divider">|</span>
+            <a href="#">Daftar</a>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+
+        <div class="logo">
+            <div class="logo-icon">▲</div>
+            <h1>Mount<span>Search</span></h1>
+        </div>
+
+        <nav>
+            <a href="index.html">Beranda</a>
+            <a href="index.html#gunung">Jelajahi Gunung</a>
+            <a href="informasi.html" class="active">Informasi</a>
+            <a href="#">Tips Pendakian</a>
+            <a href="#">Tentang Kami</a>
+        </nav>
+
+    </header>
+
+    <!-- HERO SECTION INFORMASI -->
+    <section class="hero info-hero">
+
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+
+            <p class="hero-subtitle">
+                JELAJAHI NUSANTARA
+            </p>
+
+            <h2>
+                Jelajahi Gunung Indonesia
+            </h2>
+
+            <p class="hero-description">
+                Temukan berbagai keindahan gunung yang tersebar di
+                seluruh provinsi Indonesia.
+            </p>
+
+        </div>
+
+    </section>
+
+    <!-- DAFTAR PROVINSI -->
+    <section class="info-section" id="provinsiSection">
+
+        <div class="section-header">
+
+            <div>
+                <p class="section-subtitle">PILIH PROVINSI</p>
+                <h2>Daftar Provinsi</h2>
+                <p class="results-count" id="provinsiCount"></p>
+            </div>
+
+            <!-- Pencarian nama provinsi -->
+            <div class="info-search">
+                <input
+                    type="text"
+                    id="provinsiSearch"
+                    placeholder="Cari provinsi..."
+                    autocomplete="off"
+                >
+            </div>
+
+        </div>
+
+        <!-- Grid provinsi dirender oleh informasi.js -->
+        <div class="provinsi-grid" id="provinsiGrid"></div>
+
+    </section>
+
+    <!-- DAFTAR GUNUNG PER PROVINSI (disembunyikan awal) -->
+    <section class="info-section" id="gunungSection" hidden>
+
+        <div class="section-header">
+
+            <div>
+                <p class="section-subtitle">DAFTAR GUNUNG</p>
+                <h2 id="gunungTitle">Gunung</h2>
+                <p class="results-count" id="gunungCount"></p>
+            </div>
+
+            <!-- Tombol kembali ke daftar provinsi -->
+            <button type="button" class="back-btn" id="backBtn">
+                &#8592; Kembali ke Daftar Provinsi
+            </button>
+
+        </div>
+
+        <!-- Grid gunung dirender oleh informasi.js -->
+        <div class="gunung-grid" id="gunungGrid"></div>
+
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>© 2026 MountSearch. Jelajahi Keindahan Alam Indonesia.</p>
+    </footer>
+
+    <script src="informasi.js"></script>
+
+</body>
+</html>
